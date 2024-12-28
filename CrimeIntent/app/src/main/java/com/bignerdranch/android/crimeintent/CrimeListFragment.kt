@@ -1,5 +1,6 @@
 package com.bignerdranch.android.crimeintent
 
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -13,16 +14,33 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.Recycler
+import java.util.UUID
 
 private const val TAG = "CrimeListFragment"
 
 class CrimeListFragment: Fragment() {
+
+    interface Callbacks {
+        fun onCrimeSelected(crimeId: UUID)
+    }
+
+    private var callbacks: Callbacks? = null
 
     private lateinit var crimeRecyclerView: RecyclerView
     private var adapter: CrimeAdapter? = CrimeAdapter(emptyList())
 
     private val crimeListViewModel: CrimeListViewModel by lazy {
         ViewModelProvider(this)[CrimeListViewModel::class.java]
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        callbacks = context as Callbacks?
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        callbacks = null
     }
 
     override fun onCreateView(
@@ -41,14 +59,13 @@ class CrimeListFragment: Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         crimeListViewModel.crimeListLiveData.observe(
-            viewLifecycleOwner,
-            Observer { crimes ->
-                crimes?.let {
-                    Log.i(TAG, "Got crimes ${crimes.size}")
-                    updateUI(crimes)
-                }
+            viewLifecycleOwner
+        ) { crimes ->
+            crimes?.let {
+                Log.i(TAG, "Got crimes ${crimes.size}")
+                updateUI(crimes)
             }
-        )
+        }
     }
 
     private fun updateUI(crimes: List<Crime>) {
@@ -81,7 +98,7 @@ class CrimeListFragment: Fragment() {
         }
 
         override fun onClick(v: View?) {
-            Toast.makeText(context, "${crime.title} pressed!", Toast.LENGTH_SHORT).show()
+            callbacks?.onCrimeSelected(crime.id)
         }
     }
 
