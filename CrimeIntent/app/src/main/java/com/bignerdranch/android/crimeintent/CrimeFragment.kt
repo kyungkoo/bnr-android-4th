@@ -1,5 +1,6 @@
 package com.bignerdranch.android.crimeintent
 
+import android.content.Context
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -29,16 +30,24 @@ class CrimeFragment: Fragment() {
         ViewModelProvider(this)[CrimeDetailViewModel::class.java]
     }
 
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        Log.i(TAG, "onAttach")
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         crime = Crime()
-        val crimeId: UUID = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            arguments?.getSerializable(ARG_CRIME_ID, UUID::class.java) ?: UUID.randomUUID()
-        } else {
-            arguments?.getSerializable(ARG_CRIME_ID) as UUID
-        }
+        val crimeId: UUID =
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                arguments?.getSerializable(ARG_CRIME_ID, UUID::class.java) ?: UUID.randomUUID()
+            } else {
+                arguments?.getSerializable(ARG_CRIME_ID) as UUID
+            }
 
         crimeDetailViewModel.loadCrime(crimeId)
+
+        Log.i(TAG, "onCreate")
     }
 
     override fun onCreateView(
@@ -46,6 +55,7 @@ class CrimeFragment: Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+        Log.i(TAG, "onCreateView")
         val view = inflater.inflate(R.layout.fragment_crime, container, false)
 
         titleField = view.findViewById(R.id.crime_title)
@@ -57,6 +67,8 @@ class CrimeFragment: Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        Log.i(TAG, "onViewCreated")
 
         crimeDetailViewModel.crimeLiveData.observe(
             viewLifecycleOwner,
@@ -90,17 +102,10 @@ class CrimeFragment: Fragment() {
         )
     }
 
-    private fun updateUI() {
-        titleField.setText(crime.title)
-        dateButton.text = crime.date.toString()
-        solvedCheckBox.apply {
-            isChecked = crime.isSolved
-            jumpDrawablesToCurrentState()
-        }
-    }
-
     override fun onStart() {
         super.onStart()
+
+        Log.i(TAG, "onStart")
 
         val titleWatcher = object: TextWatcher {
             override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
@@ -129,9 +134,46 @@ class CrimeFragment: Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        Log.i(TAG, "onResume")
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Log.i(TAG, "onPause")
+    }
+
     override fun onStop() {
         super.onStop()
+
+        Log.i(TAG, "onStop")
+
         crimeDetailViewModel.saveCrime(crime)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        Log.i(TAG, "onDestroyView")
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.i(TAG, "onDestroy")
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        Log.i(TAG, "onDetach")
+    }
+
+    private fun updateUI() {
+        titleField.setText(crime.title)
+        dateButton.text = crime.date.toString()
+        solvedCheckBox.apply {
+            isChecked = crime.isSolved
+            jumpDrawablesToCurrentState()
+        }
     }
 
     companion object {
