@@ -12,10 +12,12 @@ import android.widget.CheckBox
 import android.widget.EditText
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import java.util.Date
 import java.util.UUID
 
 private const val TAG = "CrimeFragment"
 private const val ARG_CRIME_ID = "crime_id"
+private const val DIALOG_DATE = "DialogDate"
 
 class CrimeFragment: Fragment() {
     private lateinit var crime: Crime
@@ -50,11 +52,6 @@ class CrimeFragment: Fragment() {
         dateButton = view.findViewById(R.id.crime_date)
         solvedCheckBox = view.findViewById(R.id.crime_solved)
 
-        dateButton.apply {
-            text = crime.date.toString()
-            isEnabled = false
-        }
-
         return view
     }
 
@@ -67,6 +64,27 @@ class CrimeFragment: Fragment() {
                 crime?.let {
                     this.crime = crime
                     updateUI()
+                }
+            }
+        )
+
+        parentFragmentManager.setFragmentResultListener(
+            DatePickerFragment.REQUEST_DATE,
+            viewLifecycleOwner,
+            { requestKey, bundle ->
+
+                Log.d(TAG, "FragmentResultListener $requestKey")
+
+                when (requestKey) {
+                    DatePickerFragment.REQUEST_DATE -> {
+                        val date = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                            bundle.getSerializable(DatePickerFragment.EXTRA_DATE, Date::class.java) as Date
+                        } else {
+                            bundle.getSerializable(DatePickerFragment.EXTRA_DATE) as Date
+                        }
+                        crime.date = date
+                        updateUI()
+                    }
                 }
             }
         )
@@ -102,6 +120,12 @@ class CrimeFragment: Fragment() {
 
         solvedCheckBox.setOnCheckedChangeListener { _, isChecked ->
             crime.isSolved = isChecked
+        }
+
+        dateButton.setOnClickListener {
+            DatePickerFragment.newInstance(crime.date).apply {
+                show(this@CrimeFragment.parentFragmentManager, DIALOG_DATE)
+            }
         }
     }
 
