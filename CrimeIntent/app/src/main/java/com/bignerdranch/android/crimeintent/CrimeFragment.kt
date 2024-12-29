@@ -1,6 +1,7 @@
 package com.bignerdranch.android.crimeintent
 
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -39,7 +40,7 @@ class CrimeFragment: Fragment() {
         super.onCreate(savedInstanceState)
         crime = Crime()
         val crimeId: UUID =
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 arguments?.getSerializable(ARG_CRIME_ID, UUID::class.java) ?: UUID.randomUUID()
             } else {
                 arguments?.getSerializable(ARG_CRIME_ID) as UUID
@@ -89,7 +90,7 @@ class CrimeFragment: Fragment() {
 
                 when (requestKey) {
                     DatePickerFragment.REQUEST_DATE -> {
-                        val date = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        val date = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             bundle.getSerializable(DatePickerFragment.EXTRA_DATE, Date::class.java) as Date
                         } else {
                             bundle.getSerializable(DatePickerFragment.EXTRA_DATE) as Date
@@ -108,7 +109,7 @@ class CrimeFragment: Fragment() {
         Log.i(TAG, "onStart")
 
         val titleWatcher = object: TextWatcher {
-            override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
+            override fun beforeTextChanged(sequence: CharSequence?, start: Int, before: Int, count: Int) {
                 // 여기서는 이 함수의 실행 코드를 구현할 필요가 없어서 비워 둔다
             }
 
