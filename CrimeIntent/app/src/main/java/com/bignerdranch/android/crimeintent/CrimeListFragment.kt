@@ -49,28 +49,6 @@ class CrimeListFragment: Fragment() {
         callbacks = null
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        requireActivity().addMenuProvider(object: MenuProvider {
-            override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
-                menuInflater.inflate(R.menu.fragment_crime_list, menu)
-            }
-
-            override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
-                return when(menuItem.itemId) {
-                    R.id.new_crime -> {
-                        val crime = Crime()
-                        crimeListViewModel.addCrime(crime)
-                        callbacks?.onCrimeSelected(crime.id)
-                        true
-                    }
-                    else -> false
-                }
-            }
-        })
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -94,6 +72,24 @@ class CrimeListFragment: Fragment() {
                 updateUI(crimes)
             }
         }
+
+        requireActivity().addMenuProvider(object: MenuProvider {
+            override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+                menuInflater.inflate(R.menu.fragment_crime_list, menu)
+            }
+
+            override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+                return when(menuItem.itemId) {
+                    R.id.new_crime -> {
+                        val crime = Crime()
+                        crimeListViewModel.addCrime(crime)
+                        callbacks?.onCrimeSelected(crime.id)
+                        true
+                    }
+                    else -> false
+                }
+            }
+        })
     }
 
     private fun updateUI(crimes: List<Crime>) {
