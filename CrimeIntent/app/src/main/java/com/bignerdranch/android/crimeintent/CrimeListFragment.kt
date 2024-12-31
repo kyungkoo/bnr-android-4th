@@ -42,36 +42,19 @@ class CrimeListFragment: Fragment() {
     override fun onAttach(context: Context) {
         super.onAttach(context)
         callbacks = context as Callbacks?
+        Log.i(TAG, "onAttach")
     }
 
     override fun onDetach() {
         super.onDetach()
         callbacks = null
+        Log.i(TAG, "onDetach")
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        val view = inflater.inflate(R.layout.fragment_crime_list, container, false)
-        noCrimeTextView = view.findViewById(R.id.no_crime_text_view)
-        crimeRecyclerView = view.findViewById(R.id.crime_recycler_view)
-        crimeRecyclerView.layoutManager = LinearLayoutManager(context)
-        crimeRecyclerView.adapter = adapter
-        return view
-    }
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        crimeListViewModel.crimeListLiveData.observe(
-            viewLifecycleOwner
-        ) { crimes ->
-            crimes?.let {
-                Log.i(TAG, "Got crimes ${crimes.size}")
-                updateUI(crimes)
-            }
-        }
+        Log.i(TAG, "onCreate")
 
         requireActivity().addMenuProvider(object: MenuProvider {
             override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
@@ -90,6 +73,33 @@ class CrimeListFragment: Fragment() {
                 }
             }
         })
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        Log.i(TAG, "onCreateView")
+        val view = inflater.inflate(R.layout.fragment_crime_list, container, false)
+        noCrimeTextView = view.findViewById(R.id.no_crime_text_view)
+        crimeRecyclerView = view.findViewById(R.id.crime_recycler_view)
+        crimeRecyclerView.layoutManager = LinearLayoutManager(context)
+        crimeRecyclerView.adapter = adapter
+        return view
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        Log.i(TAG, "onViewCreated")
+        crimeListViewModel.crimeListLiveData.observe(
+            viewLifecycleOwner
+        ) { crimes ->
+            crimes?.let {
+                Log.i(TAG, "Got crimes ${crimes.size}")
+                updateUI(crimes)
+            }
+        }
     }
 
     private fun updateUI(crimes: List<Crime>) {

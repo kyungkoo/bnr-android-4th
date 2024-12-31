@@ -1,10 +1,16 @@
 package com.bignerdranch.android.crimeintent
 
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.content.pm.ResolveInfo
 import android.os.Build
 import android.os.Bundle
+import android.provider.ContactsContract
 import android.text.Editable
 import android.text.TextWatcher
+import android.text.format.DateFormat
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -12,6 +18,9 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.launch
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import java.util.Date
@@ -20,12 +29,17 @@ import java.util.UUID
 private const val TAG = "CrimeFragment"
 private const val ARG_CRIME_ID = "crime_id"
 private const val DIALOG_DATE = "DialogDate"
+private const val DATE_FORMAT = "yyyy년 M월 d일 H시 m분, E요일"
 
 class CrimeFragment: Fragment() {
     private lateinit var crime: Crime
     private lateinit var titleField: EditText
     private lateinit var dateButton: Button
     private lateinit var solvedCheckBox: CheckBox
+    private lateinit var reportButton: Button
+    private lateinit var suspectButton: Button
+
+    private var resultLauncher: ActivityResultLauncher<Void?>? = null
 
     private val crimeDetailViewModel: CrimeDetailViewModel by lazy {
         ViewModelProvider(this)[CrimeDetailViewModel::class.java]
@@ -62,6 +76,8 @@ class CrimeFragment: Fragment() {
         titleField = view.findViewById(R.id.crime_title)
         dateButton = view.findViewById(R.id.crime_date)
         solvedCheckBox = view.findViewById(R.id.crime_solved)
+        reportButton = view.findViewById(R.id.crime_report)
+        suspectButton = view.findViewById(R.id.crime_suspect)
 
         return view
     }
@@ -101,6 +117,29 @@ class CrimeFragment: Fragment() {
                 }
             }
         )
+
+        resultLauncher = registerForActivityResult(ActivityResultContracts.PickContact()) { uri ->
+            if (uri == null) {
+                return@registerForActivityResult
+            }
+
+            val queryFields = arrayOf(ContactsContract.Contacts.DISPLAY_NAME)
+            val cursor = requireActivity().contentResolver.query(uri, queryFields, null, null, null)
+
+            cursor?.use {
+                if (it.count == 0) {
+                    return@registerForActivityResult
+                }
+
+                it.moveToFirst()
+                val suspect = it.getString(0)
+                crime.suspect = suspect
+                crimeDetailViewModel.saveCrime(crime)
+                suspectButton.text = suspect
+                crimeDetailViewModel.saveCrime(crime)
+                suspectButton.text = suspect
+            }
+        }
     }
 
     override fun onStart() {
@@ -132,6 +171,28 @@ class CrimeFragment: Fragment() {
             DatePickerFragment.newInstance(crime.date).apply {
                 show(this@CrimeFragment.parentFragmentManager, DIALOG_DATE)
             }
+        }
+
+        reportButton.setOnClickListener {
+            Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, getCrimeReport())
+                putExtra(Intent.EXTRA_SUBJECT, getString(R.string.crime_report_subject))
+            }.also {
+                startActivity(it)
+            }
+        }
+
+        suspectButton.apply {
+            setOnClickListener {
+                resultLauncher?.launch()
+            }
+
+            // 응답 가능한 액티비티가 없으면 버튼을 비활성화
+            val pickContactIntent = Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI)
+            val packageManager = requireActivity().packageManager
+            val resolvedActivity: ResolveInfo? = packageManager.resolveActivity(pickContactIntent, PackageManager.MATCH_DEFAULT_ONLY)
+            isEnabled = resolvedActivity != null
         }
     }
 
@@ -175,6 +236,27 @@ class CrimeFragment: Fragment() {
             isChecked = crime.isSolved
             jumpDrawablesToCurrentState()
         }
+
+        if (crime.suspect.isNotEmpty()) {
+            suspectButton.text = crime.suspect
+        }
+    }
+
+    private fun getCrimeReport(): String {
+        val solvedString = if (crime.isSolved) {
+            getString(R.string.crime_report_solved)
+        } else {
+            getString(R.string.crime_report_unsolved)
+        }
+
+        val dateString = DateFormat.format(DATE_FORMAT, crime.date).toString()
+        val suspect = if (crime.suspect.isBlank()) {
+            getString(R.string.crime_report_no_suspect)
+        } else {
+            getString(R.string.crime_report_suspect, crime.suspect)
+        }
+
+        return getString(R.string.crime_report, crime.title, dateString, solvedString, suspect)
     }
 
     companion object {
