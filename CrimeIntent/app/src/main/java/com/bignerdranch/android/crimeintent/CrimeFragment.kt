@@ -1,13 +1,14 @@
 package com.bignerdranch.android.crimeintent
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.ContactsContract
+import android.provider.MediaStore
 import android.text.Editable
 import android.text.TextWatcher
 import android.text.format.DateFormat
@@ -18,11 +19,15 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.ImageButton
+import android.widget.ImageView
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.launch
+import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import java.io.File
 import java.util.Date
 import java.util.UUID
 
@@ -33,13 +38,19 @@ private const val DATE_FORMAT = "yyyy년 M월 d일 H시 m분, E요일"
 
 class CrimeFragment: Fragment() {
     private lateinit var crime: Crime
+    private lateinit var photoFile: File
+    private lateinit var photoUri: Uri
+
     private lateinit var titleField: EditText
     private lateinit var dateButton: Button
     private lateinit var solvedCheckBox: CheckBox
     private lateinit var reportButton: Button
     private lateinit var suspectButton: Button
+    private lateinit var photoButton: ImageButton
+    private lateinit var photoView: ImageView
 
     private var resultLauncher: ActivityResultLauncher<Void?>? = null
+    private var photoResultLauncher: ActivityResultLauncher<Uri>? = null
 
     private val crimeDetailViewModel: CrimeDetailViewModel by lazy {
         ViewModelProvider(this)[CrimeDetailViewModel::class.java]
@@ -78,6 +89,8 @@ class CrimeFragment: Fragment() {
         solvedCheckBox = view.findViewById(R.id.crime_solved)
         reportButton = view.findViewById(R.id.crime_report)
         suspectButton = view.findViewById(R.id.crime_suspect)
+        photoButton = view.findViewById(R.id.crime_camera)
+        photoView = view.findViewById(R.id.crime_photo)
 
         return view
     }
@@ -92,6 +105,10 @@ class CrimeFragment: Fragment() {
             { crime ->
                 crime?.let {
                     this.crime = crime
+                    photoFile = crimeDetailViewModel.getPhotoFile(crime)
+                    photoUri = FileProvider.getUriForFile(requireActivity(),
+                        "com.bignerdranch.android.crimeintent.fileprvider",photoFile)
+
                     updateUI()
                 }
             }
@@ -139,6 +156,11 @@ class CrimeFragment: Fragment() {
                 crimeDetailViewModel.saveCrime(crime)
                 suspectButton.text = suspect
             }
+        }
+
+        photoResultLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) {
+            updatePhotoView()
+            requireActivity().revokeUriPermission(photoUri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
         }
     }
 
@@ -194,6 +216,25 @@ class CrimeFragment: Fragment() {
             val resolvedActivity: ResolveInfo? = packageManager.resolveActivity(pickContactIntent, PackageManager.MATCH_DEFAULT_ONLY)
             isEnabled = resolvedActivity != null
         }
+
+        photoButton.apply {
+            // 응답 가능한 액티비티가 없으면 버튼을 비활성화
+            val captureImage = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+            val packageManager = requireActivity().packageManager
+            val resolvedActivity: ResolveInfo? = packageManager.resolveActivity(captureImage, PackageManager.MATCH_DEFAULT_ONLY)
+            isEnabled = resolvedActivity != null
+
+            setOnClickListener {
+
+                val cameraActivities = packageManager.queryIntentActivities(captureImage, PackageManager.MATCH_DEFAULT_ONLY)
+
+                for (cameraActivity in cameraActivities) {
+                    requireActivity().grantUriPermission(cameraActivity.activityInfo.packageName, photoUri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                }
+
+                photoResultLauncher?.launch(photoUri)
+            }
+        }
     }
 
     override fun onResume() {
@@ -227,6 +268,8 @@ class CrimeFragment: Fragment() {
     override fun onDetach() {
         super.onDetach()
         Log.i(TAG, "onDetach")
+
+        requireActivity().revokeUriPermission(photoUri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
     }
 
     private fun updateUI() {
@@ -240,6 +283,8 @@ class CrimeFragment: Fragment() {
         if (crime.suspect.isNotEmpty()) {
             suspectButton.text = crime.suspect
         }
+
+        updatePhotoView()
     }
 
     private fun getCrimeReport(): String {
@@ -257,6 +302,15 @@ class CrimeFragment: Fragment() {
         }
 
         return getString(R.string.crime_report, crime.title, dateString, solvedString, suspect)
+    }
+
+    private fun updatePhotoView() {
+        if (photoFile.exists()) {
+            val bitmap = getScaledBitmap(photoFile.path, requireActivity())
+            photoView.setImageBitmap(bitmap)
+        } else {
+            photoView.setImageBitmap(null)
+        }
     }
 
     companion object {
