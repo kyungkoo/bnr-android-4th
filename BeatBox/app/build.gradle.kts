@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.bignerdranch.android.beatbox"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.bignerdranch.android.beatbox"
